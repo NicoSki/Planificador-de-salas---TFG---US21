@@ -130,3 +130,7 @@ La cuenta **Desarrollador** tiene acceso a toda la aplicación y sirve para una 
 ## Seguridad
 
 Los archivos `.env` contienen contraseñas y secretos, y no deben subirse al repositorio. Antes de publicar la aplicación en un servidor, usá contraseñas robustas y HTTPS, ya que la sesión se guarda en una cookie `Secure`.
+
+## Video explicativo
+
+[Ver video explicativo](https://drive.google.com/file/d/1INxRNeLY7W7CSjeJNGM6_3b9WGkV4xtk/view?usp=sharing)
