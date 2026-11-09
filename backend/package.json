@@ -1,0 +1,35 @@
+{
+  "name": "tfg",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "db:generar": "prisma generate",
+    "db:migrar": "prisma migrate dev",
+    "db:aplicar": "prisma migrate deploy",
+    "db:sembrar": "node src/prisma/semilla.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
+    "pdfkit": "^0.20.2",
+    "pg": "^8.23.1",
+    "prisma": "7.10.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

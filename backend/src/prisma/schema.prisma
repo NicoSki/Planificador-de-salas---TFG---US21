@@ -1,0 +1,215 @@
+generator client {
+    provider = "prisma-client"
+    output = "../generated/prisma"
+    moduleFormat = "esm"
+    previewFeatures = ["partialIndexes"]
+}
+
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Estados: Hacen referencia a valores fijos de los cuales depende la logica:
+
+enum EstadoTecnologia {
+  Activa
+  Inactiva
+}
+
+enum EstadoVersion {
+  Pendiente
+  Vigente
+  Historica
+  Rechazada
+}
+
+enum EstadoProyecto {
+  Pendiente
+  Aprobado
+  Denegado
+}
+
+enum AccionProyecto {
+  Creado
+  Editado
+  Aprobado
+  Denegado
+}
+
+//Tablas fijas, estas son definidas como modelos por si la aplicacion escala o se requieren realizar futuros cambios
+
+model Rol {
+  id String @id @db.VarChar(20)
+  nombre String @unique @db.VarChar(40)
+  usuarios Usuario[]
+}
+
+model Sitio {
+  id String @id @db.VarChar(20)
+  nombre String @unique @db.VarChar(40)
+  proyectos Proyecto[]
+}
+
+model Categoria {
+  id String @id @db.VarChar(20)
+  nombre String @unique @db.VarChar(30)
+  orden Int @unique
+  tecnologias Tecnologia[]
+}
+
+
+model TipoSala {
+  id String @id @db.VarChar(20)
+  estandar String @db.VarChar(20) 
+  tamano String @db.VarChar(10)
+  ancho Decimal @db.Decimal(4, 2) 
+  largo Decimal @db.Decimal(4, 2)
+  capacidad Int 
+  orden Int @unique
+  versiones VersionEstandar[]
+
+  @@unique([estandar, tamano])
+}
+
+//Acceso a la aplicacion:
+model Usuario {
+  id Int @id @default(autoincrement())
+  nombre String @db.VarChar(60)
+  apellido String @db.VarChar(60)
+  email String @unique @db.VarChar(120) 
+  rolId String @db.VarChar(20)
+  claveHash String @db.VarChar(100)
+  claveTemporalVence DateTime?
+  intentosFallidos Int @default(0)
+  bloqueadaHasta DateTime? 
+  ultimoIngreso DateTime?
+  fechaCreacion DateTime  @default(now())
+
+  rol Rol @relation(fields: [rolId], references: [id])
+  clavesAnteriores ClaveAnterior[]
+  versionesPropuestas VersionEstandar[] @relation("AutorVersion")
+  versionesResueltas VersionEstandar[] @relation("ResolucionVersion")
+  proyectos Proyecto[]
+  registros RegistroProyecto[]
+
+  @@index([rolId])
+}
+
+// Contraseñas anteriores:
+model ClaveAnterior {
+  id Int @id @default(autoincrement())
+  usuarioId Int
+  claveHash String @db.VarChar(100)
+  fecha DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, fecha])
+}
+
+//Catalogo y estadar:
+model Tecnologia {
+  id Int @id @default(autoincrement())
+  modelo String @db.VarChar(60)
+  marca String @db.VarChar(40)
+  categoriaId String @db.VarChar(20)
+  precioCentavos Int
+  estado EstadoTecnologia @default(Activa)
+  fechaPrecio DateTime @default(now())
+  fechaCreacion DateTime @default(now())
+
+  categoria Categoria @relation(fields: [categoriaId], references: [id])
+  enVersiones VersionItem[]
+  enProyectos ProyectoItem[]
+
+  @@index([categoriaId])
+}
+
+model VersionEstandar {
+  id Int @id @default(autoincrement())
+  tipoSalaId String @db.VarChar(20)
+  numero Int 
+  estado EstadoVersion @default(Pendiente)
+  observaciones String @default("") @db.VarChar(500)
+  autorId Int
+  fechaCreacion DateTime @default(now())
+  resueltaPorId Int?
+  fechaResolucion DateTime?
+  motivoRechazo String? @db.VarChar(500)
+
+  tipoSala TipoSala @relation(fields: [tipoSalaId], references: [id])
+  autor Usuario @relation("AutorVersion", fields: [autorId], references: [id])
+  resueltaPor Usuario? @relation("ResolucionVersion", fields: [resueltaPorId], references: [id])
+  items VersionItem[]
+  proyectos Proyecto[]
+
+  @@unique([tipoSalaId, numero])
+  @@unique([tipoSalaId], where: { estado: "Vigente" }, map: "una_vigente_por_tipo_sala")
+  @@unique([tipoSalaId], where: { estado: "Pendiente" }, map: "una_pendiente_por_tipo_sala")
+}
+
+model VersionItem {
+  versionId Int
+  tecnologiaId Int
+  cantidadMaxima Int @default(1)
+
+  version VersionEstandar @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  tecnologia Tecnologia @relation(fields: [tecnologiaId], references: [id])
+
+  @@id([versionId, tecnologiaId])
+  @@index([tecnologiaId])
+}
+
+//Proyecto y aprobacion:
+model Proyecto {
+  id Int @id @default(autoincrement())
+  nombre String @db.VarChar(80)
+  sitioId String @db.VarChar(20)
+  versionId Int
+  ancho Decimal @db.Decimal(4, 2)
+  largo Decimal @db.Decimal(4, 2)
+  gestorId Int
+  estado EstadoProyecto @default(Pendiente)
+  fechaCreacion DateTime @default(now())
+
+  sitio Sitio @relation(fields: [sitioId], references: [id])
+  version VersionEstandar @relation(fields: [versionId], references: [id])
+  gestor Usuario @relation(fields: [gestorId], references: [id])
+  items ProyectoItem[]
+  registros RegistroProyecto[]
+
+  @@index([sitioId])
+  @@index([versionId])
+  @@index([gestorId])
+  @@index([estado])
+}
+
+model ProyectoItem {
+  proyectoId Int
+  tecnologiaId Int
+  cantidad Int
+  precioCentavos Int
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  tecnologia Tecnologia @relation(fields: [tecnologiaId], references: [id])
+
+  @@id([proyectoId, tecnologiaId])
+  @@index([tecnologiaId])
+}
+
+model RegistroProyecto {
+  id Int @id @default(autoincrement())
+  proyectoId Int
+  usuarioId Int
+  accion AccionProyecto
+  fecha DateTime @default(now())
+  totalCentavos Int
+  motivo String? @db.VarChar(500)
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([proyectoId, fecha])
+  @@index([usuarioId])
+}
