@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
+    "test": "node --test \"pruebas/*.test.js\"",
     "dev": "nodemon src/index.js",
     "db:generar": "prisma generate",
     "db:migrar": "prisma migrate dev",
